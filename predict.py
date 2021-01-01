@@ -25,6 +25,7 @@ def get_args():
     parser.add_argument('--output_csv',       type=str,   default='output/_.csv')
 
     parser.add_argument('--lr',               type=float, default=1e-4)
+    parser.add_argument('--warmup',           type=int,   default=1)
     parser.add_argument('--total_epoch',      type=int,   default=0)
     parser.add_argument('--checkpoint_epoch', type=int,   default=0)
 

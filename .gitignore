@@ -4,11 +4,14 @@
 
 # Dataset
 oulu_npu_cropped/
+siw_test/
 
 ckpt/
 log/
 output/
+qsub/
 
+queue.sh
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

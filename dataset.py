@@ -24,15 +24,19 @@ class OuluDataset(Dataset):
             if self.return_label:
                 self.labels.append(int(sub_dir.split('_')[-1]) - 1)
 
-    def transform(self, files):
+    def transform(self, files, random_crop=True):
         images = []
         for file in files:
             images.append(Image.open(file))
 
         L = len(images)
         # Resize
+        resize_dim = int(self.image_dim * random.uniform(1.0, 1.5))
         for i in range(L):
-            images[i] = images[i].resize((self.image_dim, self.image_dim))
+            if random_crop and self.argument:
+                images[i] = images[i].resize((resize_dim, resize_dim))
+            else:
+                images[i] = images[i].resize((self.image_dim, self.image_dim))
 
         if self.argument:
             # Horizontal flip
@@ -41,16 +45,18 @@ class OuluDataset(Dataset):
                     images[i] = transforms.functional.hflip(images[i])
 
             # Random crop
-            # s = 512
-            # c = self.crop_size
-            # i = torch.randint(0, s - c + 1, size=(1, )).item()
-            # j = torch.randint(0, s - c + 1, size=(1, )).item()
+            if random_crop:
+                s = resize_dim
+                c = self.image_dim
+                i = torch.randint(0, s - c + 1, size=(1, )).item()
+                j = torch.randint(0, s - c + 1, size=(1, )).item()
 
-            # x = G.crop(x, i, j, c, c)
-            # y = G.crop(y, i, j, c, c)
+                for i in range(L):
+                    images[i] = transforms.functional.crop(images[i], i, j, c, c)
 
             # Color jitter
-            alpha = 0.2
+            # alpha = 0.2
+            alpha = 0.4
             for i in range(L):
                 images[i] = transforms.functional.adjust_brightness(images[i], random.uniform(1 - alpha, 1 + alpha))
                 images[i] = transforms.functional.adjust_contrast  (images[i], random.uniform(1 - alpha, 1 + alpha))

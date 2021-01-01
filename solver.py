@@ -7,6 +7,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 import os
 import time
+from sklearn.metrics import roc_auc_score
 
 from model import ResNet3D
 
@@ -18,7 +19,9 @@ class Solver():
 
         self.name = args.name
 
+        self.step = 0
         self.epoch = 0
+        self.warmup = args.warmup
         self.total_epoch = args.total_epoch
         self.checkpoint_epoch = args.checkpoint_epoch
 
@@ -27,14 +30,19 @@ class Solver():
             self.load_checkpoint(args.load_checkpoint)
 
         self.optimizer = optim.Adam(self.net.parameters(), lr=args.lr)
+        if self.warmup:
+            gamma = 0.5
+            step_size = 2000
+            l = lambda step: (step + 1) / 1000 if step < 1000 else gamma ** (step // step_size)
+            self.scheduler = optim.lr_scheduler.LambdaLR(self.optimizer, l)
 
         self.writter = SummaryWriter(os.path.join('log', self.name))
         self.metrics = {
             'step': [],
             'train/loss': [],
-            'train/acc': [],
-            'val/loss': [],
-            'val/acc': []
+            'train/acc':  [],
+            'val/loss':   [],
+            'val/acc':    []
         }
 
     def print_model(self):
@@ -43,6 +51,7 @@ class Solver():
 
     def save_checkpoint(self, output_file, weights_only=False):
         checkpoint = {
+            'step': self.step,
             'epoch': self.epoch,
             'metrics': self.metrics,
             'net_state_dict': self.net.state_dict()
@@ -58,9 +67,11 @@ class Solver():
         checkpoint = torch.load(checkpoint_file, map_location=self.device)
         self.net.load_state_dict(checkpoint['net_state_dict'])
         if not weights_only:
+            self.step = checkpoint['step'] + 1
             self.epoch = checkpoint['epoch'] + 1
             self.metrics = checkpoint['metrics']
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            self.scheduler.last_epoch = checkpoint['step']
 
     def predict(self, loader):
         output = []
@@ -80,6 +91,9 @@ class Solver():
     def train_on_epoch(self, loader):
         loss = 0.0
         acc = 0.0
+        # Calculate auc
+        y_true = []
+        y_score = []
         self.net.train()
         for i, data in enumerate(loader):
             x = data[0].to(self.device)
@@ -95,11 +109,21 @@ class Solver():
             loss += batch_loss.item()
             acc += (torch.argmax(y_pred.detach(), dim=1) == y).float().sum() / len(y)
 
-        return loss / len(loader), acc / len(loader)
+            # Calculate auc
+            y_true.extend((y == 0).detach().cpu().numpy())
+            y_score.extend(F.softmax(y_pred, dim=1)[:, 0].detach().cpu().numpy())
+
+            self.scheduler.step()
+            self.step += 1
+
+        return loss / len(loader), acc / len(loader), roc_auc_score(y_true, y_score)
 
     def val_on_epoch(self, loader):
         loss = 0.0
         acc = 0.0
+        # Calculate auc
+        y_true = []
+        y_score = []
         self.net.eval()
         with torch.no_grad():
             for i, data in enumerate(loader):
@@ -112,19 +136,38 @@ class Solver():
                 loss += batch_loss.item()
                 acc += (torch.argmax(y_pred, dim=1) == y).float().sum() / len(y)
 
-        return loss / len(loader), acc / len(loader)
+                # Calculate auc
+                y_true.extend((y == 0).detach().cpu().numpy())
+                y_score.extend(F.softmax(y_pred, dim=1)[:, 0].detach().cpu().numpy())
+
+        return loss / len(loader), acc / len(loader), roc_auc_score(y_true, y_score)
 
     def train(self, train_loader, val_loader=None):
         while self.epoch < self.total_epoch:
             start_time = time.time()
 
-            loss, acc = self.train_on_epoch(train_loader)
+            loss, acc, auc = self.train_on_epoch(train_loader)
             if val_loader is not None:
-                val_loss, val_acc = self.val_on_epoch(val_loader)
+                val_loss, val_acc, val_auc = self.val_on_epoch(val_loader)
 
-            message = f'epoch: {self.epoch + 1:>3} [{time.time() - start_time:2.2f}s] train [loss: {loss:.4f}, acc: {acc:.4f}]'
+            message = f'epoch: {self.epoch + 1:>3} [{time.time() - start_time:2.2f}s] train [loss: {loss:.4f}, acc: {acc:.4f} auc: {auc:.4f}]'
+            # Tensorboard
+            self.writter.add_scalar('train/loss', loss, self.epoch + 1)
+            self.writter.add_scalar('train/acc',  acc,  self.epoch + 1)
+            self.writter.add_scalar('train/auc',  auc,  self.epoch + 1)
+            # Checkpoint
+            # self.metrics['train/loss'].append(loss)
+            # self.metrics['train/acc'] .append(acc )
+
             if val_loader is not None:
-                message += f' val [loss: {val_loss:.4f}, acc: {val_acc:.4f}]'
+                message += f' val [loss: {val_loss:.4f}, acc: {val_acc:.4f} auc: {val_auc:.4f}]'
+                # Tensorboard
+                self.writter.add_scalar('val/loss', val_loss, self.epoch + 1)
+                self.writter.add_scalar('val/acc',  val_acc,  self.epoch + 1)
+                self.writter.add_scalar('val/auc',  val_auc,  self.epoch + 1)
+                # Checkpoint
+                # self.metrics['val/loss'].append(val_loss)
+                # self.metrics['val/acc'] .append(val_acc )
 
             print(message)
 
