@@ -9,7 +9,7 @@ import os
 import time
 from sklearn.metrics import roc_auc_score
 
-from model import ResNet3D
+from model import *
 
 
 class Solver():
@@ -25,16 +25,26 @@ class Solver():
         self.total_epoch = args.total_epoch
         self.checkpoint_epoch = args.checkpoint_epoch
 
-        self.net = ResNet3D().to(self.device)
-        if args.load_checkpoint is not None:
-            self.load_checkpoint(args.load_checkpoint)
+        nets = {
+            'resnet3d': ResNet3D,
+            'resnet18': ResNet18,
+            'resnet50': ResNet50,
+            'alexnet': AlexNet
+        }
+
+        try:
+            self.net = nets[args.model]().to(self.device)
+        except KeyError:
+            raise NotImplementedError
 
         self.optimizer = optim.Adam(self.net.parameters(), lr=args.lr)
+
         if self.warmup:
-            gamma = 0.5
-            step_size = 2000
-            l = lambda step: (step + 1) / 1000 if step < 1000 else gamma ** (step // step_size)
+            l = lambda step: (step + 1) / 1000 if step < 1000 else 1.0
             self.scheduler = optim.lr_scheduler.LambdaLR(self.optimizer, l)
+
+        if args.load_checkpoint is not None:
+            self.load_checkpoint(args.load_checkpoint, weights_only=False)
 
         self.writter = SummaryWriter(os.path.join('log', self.name))
         self.metrics = {
@@ -79,8 +89,16 @@ class Solver():
         with torch.no_grad():
             for i, data in enumerate(loader):
                 x = data.to(self.device)
+                crop_num = x.size(1) if len(x.size()) == 5 else 1
+                if crop_num > 1:
+                    x = x.flatten(end_dim=1)
+
                 y_pred = self.net(x)
                 y_pred = F.softmax(y_pred, dim=1)
+
+                if crop_num > 1:
+                    y_pred = y_pred.view(-1, crop_num, y_pred.size(1))
+                    y_pred = y_pred.mean(dim=1)
 
                 output.extend(
                     y_pred[:, 0].detach().cpu().numpy()
