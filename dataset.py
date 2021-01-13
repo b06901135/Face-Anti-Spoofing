@@ -6,6 +6,7 @@ import os
 import random
 import numpy as np
 from PIL import Image
+import cv2
 
 
 class VideoDataset(Dataset):
@@ -83,7 +84,7 @@ class VideoDataset(Dataset):
 
 
 class TextureDataset(Dataset):
-    def __init__(self, image_dir, argument=True, image_dim=224, limit_num=None, five_crop=True, return_label=True):
+    def __init__(self, image_dir, argument=True, image_dim=224, limit_num=None, five_crop=False, return_label=True):
         self.argument = argument
         self.image_dim = image_dim
         self.return_label = return_label
@@ -105,8 +106,10 @@ class TextureDataset(Dataset):
                 transforms.RandomCrop((self.image_dim, self.image_dim)),
                 transforms.RandomHorizontalFlip(),
                 transforms.ColorJitter(0.2, 0.2, 0.2, 0.2),
+                transforms.RandomRotation(15),
                 transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                transforms.RandomErasing()
             ])
         elif five_crop:
             self.transform = transforms.Compose([
@@ -144,10 +147,90 @@ class TextureDataset(Dataset):
         return len(self.files)
 
 
+def image_to_spec(image, spec_dim=224):
+    image = np.array(image)
+
+    spec = np.stack([np.fft.fftshift(np.fft.fft2(image[:, :, i])) for i in range(3)], axis=2)
+    spec = 20 * np.log(np.abs(spec))
+    spec = cv2.resize(spec, (spec_dim, spec_dim))
+    spec_min = spec.min()
+    spec_max = spec.max()
+    spec = (spec - spec_min) / (spec_max - spec_min) * 255
+    spec = spec.astype(np.uint8)
+    return spec
+
+
+class SpecDataset(Dataset):
+    def __init__(self, image_dir, argument=True, image_dim=224, limit_num=None, return_label=True):
+        self.argument = argument
+        self.image_dim = image_dim
+        self.return_label = return_label
+
+        self.sub_dirs = sorted(os.listdir(image_dir))
+        self.files = []
+        self.labels = []
+        for sub_dir in self.sub_dirs:
+            temp = sorted(os.listdir(os.path.join(image_dir, sub_dir)))
+            temp = [os.path.join(image_dir, sub_dir, file) for file in temp]
+            temp = temp[:limit_num] if limit_num is not None else temp
+            self.files.extend(temp)
+            if self.return_label:
+                self.labels.extend([int(sub_dir.split('_')[-1]) - 1 for _ in range(len(temp))])
+
+        # self.transform = transforms.Compose([
+        #     lambda file: Image.open(file),
+        #     transforms.ToTensor()
+        # ])
+
+    def transform(self, file):
+        spec_file = os.path.join('spec', file)
+        if os.path.exists(spec_file):
+            spec = Image.open(spec_file)
+            spec = transforms.functional.to_tensor(spec)
+        else:
+            image = Image.open(file)
+            spec = image_to_spec(image)
+
+            os.makedirs(os.path.dirname(spec_file), exist_ok=True)
+            Image.fromarray(spec).save(spec_file)
+
+            spec = transforms.functional.to_tensor(spec)
+
+        if self.argument:
+            spec = transforms.RandomErasing()(spec)
+
+        return spec
+
+    def __getitem__(self, idx):
+        try:
+            x = self.transform(self.files[idx])
+        except ValueError as e:
+            x = self.transform_catch(self.files[idx])
+        return (x, self.labels[idx]) if self.return_label else x
+
+    def __len__(self):
+        return len(self.files)
+
+
 if __name__ == '__main__':
     from torch.utils.data import DataLoader
-    # dataset = VideoDataset('oulu_npu_cropped/train', limit_num=10)
-    dataset = TextureDataset('oulu_npu_cropped/train', argument=False)
+    dataset = VideoDataset('oulu_npu_cropped/train', limit_num=10)
+    # dataset = SpecDataset('oulu_npu_cropped/train')
     dataloader = DataLoader(dataset, batch_size=8)
     (x, y) = next(iter(dataloader))
-    print(x.size(), y)
+    print(x.size(), type(x), y)
+
+    # import matplotlib.pyplot as plt
+    # files = [
+    #     'oulu_npu_cropped/train/1_1_01_1/020.png',
+    #     'oulu_npu_cropped/train/1_1_01_2/001.png',
+    #     'oulu_npu_cropped/train/1_1_01_4/015.png'
+    # ]
+    # for i, file in enumerate(files):
+    #     image = Image.open(file)
+    #     spec = image_to_spec(image, 224)
+    #     fig, axs = plt.subplots(1, 2)
+    #     axs[0].imshow(image)
+    #     axs[1].imshow(spec)
+    #     plt.savefig(f'figure/{i}.png')
+    #     plt.close()

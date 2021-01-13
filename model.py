@@ -55,6 +55,26 @@ class ResNet50(nn.Module):
         return self.net(x)
 
 
+class Vgg11(nn.Module):
+    def __init__(self, out_dim=5, pretrained=True):
+        super().__init__()
+        self.net = models.vgg11_bn(pretrained=pretrained)
+        self.net.classifier[6] = nn.Linear(4096, out_dim)
+
+    def forward(self, x):
+        return self.net(x)
+
+
+class Vgg16(nn.Module):
+    def __init__(self, out_dim=5, pretrained=True):
+        super().__init__()
+        self.net = models.vgg16_bn(pretrained=pretrained)
+        self.net.classifier[6] = nn.Linear(4096, out_dim)
+
+    def forward(self, x):
+        return self.net(x)
+
+
 class AlexNet(nn.Module):
     def __init__(self, out_dim=5, pretrained=True):
         super().__init__()
@@ -66,7 +86,7 @@ class AlexNet(nn.Module):
 
 
 if __name__ == '__main__':
-    model = models.alexnet()
+    model = models.vgg19_bn()
     print(model)
 
     # fake_x = torch.ones((8, 3, 10, 112, 112))

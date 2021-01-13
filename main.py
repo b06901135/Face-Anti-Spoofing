@@ -21,6 +21,7 @@ def get_args():
     parser.add_argument('--batch_size',       type=int,   default=32)
 
     parser.add_argument('--texture',          action='store_true')
+    parser.add_argument('--spec',             action='store_true')
 
     # training setting
     parser.add_argument('--name',             type=str,   default='_')
@@ -39,8 +40,13 @@ def get_args():
 def main():
     args = get_args()
 
-    print('texture', args.texture)
-    FaceDataset = TextureDataset if args.texture else VideoDataset
+    if args.spec:
+        assert args.texture, '--texture must be true when setting --spec'
+        FaceDataset = SpecDataset
+    elif args.texture:
+        FaceDataset = TextureDataset
+    else:
+        FaceDataset = VideoDataset
 
     train_set = FaceDataset(args.train_dir, args.augment, args.image_dim, args.limit_num)
     train_loader = DataLoader(train_set, batch_size=args.batch_size, num_workers=args.num_workers)
