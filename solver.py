@@ -31,8 +31,7 @@ class Solver():
             'resnet18': ResNet18,
             'resnet50': ResNet50,
             'vgg11': Vgg11,
-            'vgg16': Vgg16,
-            'alexnet': AlexNet
+            'vgg16': Vgg16
         }
 
         try:
@@ -56,19 +55,11 @@ class Solver():
             print(e)
             self.writter = None
 
-        self.metrics = {
-            'step': [],
-            'train/loss': [],
-            'train/acc':  [],
-            'val/loss':   [],
-            'val/acc':    []
-        }
-
     def print_model(self):
         print(self.net)
         print(self.optimizer)
 
-    def save_checkpoint(self, ckpt_file=None, weights_only=False):
+    def save_checkpoint(self, ckpt_file, weights_only=False):
         checkpoint = {
             'step': self.step,
             'epoch': self.epoch,
@@ -78,27 +69,12 @@ class Solver():
             checkpoint.update({
                 'optimizer_state_dict': self.optimizer.state_dict()
             })
-        ckpt_dir = f'ckpt/{self.name}' if ckpt_file is None else os.path.dirname(ckpt_file)
-        os.makedirs(ckpt_dir, exist_ok=True)
-        try:
-            ckpt_file = os.path.join(ckpt_dir, f'{self.epoch + 1:02}.pth') if ckpt_file is None else ckpt_file
-            torch.save(checkpoint, ckpt_file)
-        except IOError as e:
-            print(e)
-            ckpt_file = os.path.join(ckpt_dir, f'{self.epoch + 1:02}.pkl') if ckpt_file is None else ckpt_file
-            with open(ckpt_file, 'wb') as f:
-                pickle.dump(checkpoint ,ckpt_file)
+
+        os.makedirs(os.path.dirname(ckpt_file), exist_ok=True)
+        torch.save(checkpoint, ckpt_file)
 
     def load_checkpoint(self, ckpt_file, weights_only=True):
-        ckpt_ext = os.path.splitext(ckpt_file)[-1]
-        if ckpt_ext == '.pth':
-            checkpoint = torch.load(ckpt_file, map_location=self.device)
-        elif ckpt_ext == '.pkl':
-            with open(ckpt_file, 'rb') as f:
-                checkpoint = pickle.load(f)
-        else:
-            raise NotImplementedError(f'Unknown extension: {ckpt_ext}')
-
+        checkpoint = torch.load(ckpt_file, map_location=self.device)
         self.net.load_state_dict(checkpoint['net_state_dict'])
         if not weights_only:
             self.step = checkpoint['step'] + 1
@@ -214,6 +190,6 @@ class Solver():
             print(message)
 
             if (self.epoch + 1) % self.checkpoint_epoch == 0:
-                self.save_checkpoint()
+                self.save_checkpoint(f'ckpt/{self.name}/{self.epoch + 1:02}.pth')
 
             self.epoch += 1
