@@ -28,10 +28,13 @@ class Solver():
 
         nets = {
             'resnet3d': ResNet3D,
+            'resnet_mc3': ResNetMC3,
+            'resnet_r21d': ResNetR21D,
             'resnet18': ResNet18,
             'resnet50': ResNet50,
             'vgg11': Vgg11,
-            'vgg16': Vgg16
+            'vgg16': Vgg16,
+            'vgg19': Vgg19
         }
 
         try:
@@ -190,6 +193,6 @@ class Solver():
             print(message)
 
             if (self.epoch + 1) % self.checkpoint_epoch == 0:
-                self.save_checkpoint(f'ckpt/{self.name}/{self.epoch + 1:02}.pth')
+                self.save_checkpoint(f'ckpt/{self.name}/e{self.epoch + 1:02}.pth')
 
             self.epoch += 1

@@ -75,10 +75,10 @@ class Vgg16(nn.Module):
         return self.net(x)
 
 
-class AlexNet(nn.Module):
+class Vgg19(nn.Module):
     def __init__(self, out_dim=5, pretrained=True):
         super().__init__()
-        self.net = models.alexnet(pretrained=pretrained)
+        self.net = models.vgg19_bn(pretrained=pretrained)
         self.net.classifier[6] = nn.Linear(4096, out_dim)
 
     def forward(self, x):

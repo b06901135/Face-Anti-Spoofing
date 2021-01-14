@@ -10,7 +10,7 @@ import cv2
 
 
 class VideoDataset(Dataset):
-    def __init__(self, image_dir, argument=True, image_dim=112, limit_num=None, return_label=True):
+    def __init__(self, image_dir, argument=True, image_dim=112, limit_num=None, five_crop=None, return_label=True):
         self.argument = argument
         self.image_dim = image_dim
         self.return_label = return_label
