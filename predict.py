@@ -23,6 +23,7 @@ def get_args():
     parser.add_argument('--texture',          action='store_true')
     parser.add_argument('--spec',             action='store_true')
     parser.add_argument('--category',         action='store_true')
+    parser.add_argument('--score',            action='store_true')
 
     # testing setting
     parser.add_argument('--name',             type=str,   default='_')
@@ -37,6 +38,14 @@ def get_args():
     parser.add_argument('--checkpoint_epoch', type=int,   default=0)
 
     return parser.parse_args()
+
+
+def geo_mean(a, axis=None):
+    a[a < 1e-16] = 1e-16
+    a = np.log(a)
+    a = a.mean(axis=axis)
+    a = np.exp(a)
+    return a
 
 
 def main():
@@ -56,8 +65,41 @@ def main():
 
     print(f'Running prediction on {len(test_set)} samples ...')
 
-    solver = Solver(args)
-    if args.category:
+    solver = Solver(args, weights_only=True)
+    if args.score:
+        predict = solver.predict(test_loader, return_score=True)
+        predict = np.array(predict)
+        predict[:, 1] = geo_mean(predict[:, 1:3], axis=1)
+        predict[:, 2] = geo_mean(predict[:, 3: ], axis=1)
+        predict = predict[:, :3]
+
+        if args.texture:
+            predict = np.reshape(predict, (-1, 10, 3))
+            predict = np.mean(predict, axis=1)
+
+        temp = np.zeros(predict.shape[0], np.int)
+        temp_set = set(list(range(len(temp))))
+
+        count = np.array([0, 0, 0], np.int)
+        limit = (np.array([0.29105, 0.16422, 0.54471]) * len(temp)).astype(np.int)
+
+        while len(temp_set) > 0:
+            for i in range(3):
+                while True:
+                    if count[i] <= limit[i]:
+                        idx = np.argmax(predict[:, i])
+                        predict[idx, i] = 0
+                        if idx in temp_set:
+                            temp[idx] = i
+                            temp_set.remove(idx)
+                            count[i] += 1
+                            break
+                    else:
+                        break
+
+        predict = temp
+
+    elif args.category:
         predict = solver.predict(test_loader, category=True)
         predict = np.array(predict)
         predict[predict == 2] = 1
@@ -73,7 +115,8 @@ def main():
         predict = np.array(predict)
         if args.texture:
             predict = np.reshape(predict, (-1, 10))
-            predict = np.mean(predict, axis=1)
+            # predict = np.mean(predict, axis=1)
+            predict = geo_mean(predict, axis=1)
 
     with open(args.output_csv, 'w') as f:
         f.write('video_id,label\n')
@@ -81,5 +124,17 @@ def main():
             f.write(f'{video_id},{label}\n')
 
 
+def test():
+    test_set = TextureDataset('siw_test')
+    for i in range(3):
+        predict = np.ones(len(test_set.sub_dirs), np.int) * i
+
+        with open(f'output/all_{i}_cat.csv', 'w') as f:
+            f.write('video_id,label\n')
+            for video_id, label in zip(test_set.sub_dirs, predict):
+                f.write(f'{video_id},{label}\n')
+
+
 if __name__ == '__main__':
     main()
+    # test()

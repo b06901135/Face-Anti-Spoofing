@@ -6,7 +6,7 @@ import pandas as pd
 def geo_mean(arr):
     arr[arr < 1e-16] = 1e-16
     a = np.log(arr)
-    return np.exp(a.sum() / len(a))
+    return np.exp(a.mean())
 
 
 def blend(csv_files, out_file, category=False):

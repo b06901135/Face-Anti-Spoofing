@@ -13,7 +13,7 @@ from model import *
 
 
 class Solver():
-    def __init__(self, args):
+    def __init__(self, args, weights_only=False):
         self.device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
         print(f'DEVICE: {self.device}')
 
@@ -49,7 +49,7 @@ class Solver():
             self.scheduler = optim.lr_scheduler.LambdaLR(self.optimizer, l)
 
         if args.load_checkpoint is not None:
-            self.load_checkpoint(args.load_checkpoint, weights_only=False)
+            self.load_checkpoint(args.load_checkpoint, weights_only)
 
         try:
             from torch.utils.tensorboard import SummaryWriter
@@ -85,7 +85,7 @@ class Solver():
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
             self.scheduler.last_epoch = checkpoint['step']
 
-    def predict(self, loader, category=False):
+    def predict(self, loader, category=False, return_score=False):
         output = []
         self.net.eval()
         with torch.no_grad():
@@ -103,7 +103,9 @@ class Solver():
                     y_pred = y_pred.view(-1, crop_num, y_pred.size(1))
                     y_pred = y_pred.mean(dim=1)
 
-                if category:
+                if return_score:
+                    temp = y_pred.detach().cpu().numpy()
+                elif category:
                     temp = torch.argmax(y_pred, dim=1).detach().cpu().numpy()
                 else:
                     temp = y_pred[:, 0].detach().cpu().numpy()
