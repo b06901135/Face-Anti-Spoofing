@@ -1,10 +1,7 @@
 # DLCV Final Project ( Face Anti-spoofing )
 
 # How to run your code?
-> TODO: Please provide example scripts to run your code. For example,
-> 1. python3 preprocessing.py
-> 2. python3 predict.py
-> ...
+
 ```bash
 # Download models file from dropbox
 bash download_models.sh
@@ -14,7 +11,6 @@ bash predict_anomaly.sh [path/to/oulu_test_dir | path/to/siw_test_dir] path/to/o
 
 # Predict class label on OULU or SiW test set
 bash predict_class.sh [path/to/oulu_test_dir | path/to/siw_test_dir] path/to/output.csv
-
 ```
 
 # Usage
