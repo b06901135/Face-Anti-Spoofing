@@ -10,7 +10,7 @@ do
         --image_dim 224 \
         --texture \
         --category \
-        --load_checkpoint ckpt/${NAME[i]}/e50.pth \
+        --load_checkpoint ckpt_final/${NAME[i]}_e50.pth \
         --model ${MODEL[i]} \
         --test_dir $1 \
         --output_csv output/${NAME[i]}${TAG}.csv
