@@ -210,27 +210,3 @@ class SpecDataset(Dataset):
 
     def __len__(self):
         return len(self.files)
-
-
-if __name__ == '__main__':
-    from torch.utils.data import DataLoader
-    dataset = VideoDataset('oulu_npu_cropped/train', limit_num=10)
-    # dataset = SpecDataset('oulu_npu_cropped/train')
-    dataloader = DataLoader(dataset, batch_size=8)
-    (x, y) = next(iter(dataloader))
-    print(x.size(), type(x), y)
-
-    # import matplotlib.pyplot as plt
-    # files = [
-    #     'oulu_npu_cropped/train/1_1_01_1/020.png',
-    #     'oulu_npu_cropped/train/1_1_01_2/001.png',
-    #     'oulu_npu_cropped/train/1_1_01_4/015.png'
-    # ]
-    # for i, file in enumerate(files):
-    #     image = Image.open(file)
-    #     spec = image_to_spec(image, 224)
-    #     fig, axs = plt.subplots(1, 2)
-    #     axs[0].imshow(image)
-    #     axs[1].imshow(spec)
-    #     plt.savefig(f'figure/{i}.png')
-    #     plt.close()

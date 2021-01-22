@@ -1,12 +1,22 @@
 # DLCV Final Project ( Face Anti-spoofing )
 
 # How to run your code?
-> TODO: Please provide example scripts to run your code. For example, 
+> TODO: Please provide example scripts to run your code. For example,
 > 1. python3 preprocessing.py
 > 2. python3 predict.py
 > ...
+```bash
+# Download models file from dropbox
+bash download_models.sh
 
-    
+# Predict anomaly score on OULU or SiW test set
+bash predict_anomaly.sh [path/to/oulu_test_dir | path/to/siw_test_dir] path/to/output.csv
+
+# Predict class label on OULU or SiW test set
+bash predict_class.sh [path/to/oulu_test_dir | path/to/siw_test_dir] path/to/output.csv
+
+```
+
 # Usage
 To start working on this final project, you should clone this repository into your local machine by using the following command:
 
@@ -22,7 +32,7 @@ In the starter code of this repository, we have provided 2 shell scripts for dow
     bash ./get_dataset_oulu.sh
 The shell scripts will automatically download the dataset and store the data. Note that these commands by default only works on Linux. If you are using other operating systems, you should download the dataset from [this link_oulu](https://drive.google.com/file/d/1251SwV6bnMrDF0EZ8kdmH2FZQTLSLbgU/view) & [this_link_SiW](https://drive.google.com/file/d/1eUd3Y0_9y_xZ6CDDn3p9Y2KWKH997do_/view) and unzip the compressed files manually.
 
-> ⚠️ ***IMPORTANT NOTE*** ⚠️  
+> ⚠️ ***IMPORTANT NOTE*** ⚠️
 > 1. Please do not upload your get_dataset.sh to your (public) Github.
 > 2. You should keep a copy of the dataset only in your local machine. **DO NOT** upload the dataset to this remote repository. If you extract the dataset manually, be sure to put them in a folder called `oulu` and a folder called `SiW` under the root directory of your local repository so that they will be included in the default `.gitignore` file.
 
@@ -37,11 +47,11 @@ We will use AUC to evaluate your model. Please refer to the introduction ppt for
 #### Late Submission is NOT allowed for final project!
 
 ### Academic Honesty
--   Taking any unfair advantages over other class members (or letting anyone do so) is strictly prohibited. Violating university policy would result in an **F** grade for this course (**NOT** negotiable).    
--   If you refer to some parts of the public code, you are required to specify the references in your report (e.g. URL to GitHub repositories).      
+-   Taking any unfair advantages over other class members (or letting anyone do so) is strictly prohibited. Violating university policy would result in an **F** grade for this course (**NOT** negotiable).
+-   If you refer to some parts of the public code, you are required to specify the references in your report (e.g. URL to GitHub repositories).
 
 
-> 🆕 ***NOTE***  
+> 🆕 ***NOTE***
 > For the sake of conformity, please use the `python3` command to call your `.py` files in all your shell scripts. Do not use `python` or other aliases, otherwise your commands may fail in our autograding scripts.
 
 ### Packages

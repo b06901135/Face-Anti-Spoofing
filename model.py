@@ -83,12 +83,3 @@ class Vgg19(nn.Module):
 
     def forward(self, x):
         return self.net(x)
-
-
-if __name__ == '__main__':
-    model = models.vgg19_bn()
-    print(model)
-
-    # fake_x = torch.ones((8, 3, 10, 112, 112))
-    # y = model(fake_x)
-    # print(y.size())

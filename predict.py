@@ -23,7 +23,7 @@ def get_args():
     parser.add_argument('--texture',          action='store_true')
     parser.add_argument('--spec',             action='store_true')
     parser.add_argument('--category',         action='store_true')
-    parser.add_argument('--score',            action='store_true')
+    parser.add_argument('--force',            action='store_true')
 
     # testing setting
     parser.add_argument('--name',             type=str,   default='_')
@@ -38,14 +38,6 @@ def get_args():
     parser.add_argument('--checkpoint_epoch', type=int,   default=0)
 
     return parser.parse_args()
-
-
-def geo_mean(a, axis=None):
-    a[a < 1e-16] = 1e-16
-    a = np.log(a)
-    a = a.mean(axis=axis)
-    a = np.exp(a)
-    return a
 
 
 def main():
@@ -66,7 +58,7 @@ def main():
     print(f'Running prediction on {len(test_set)} samples ...')
 
     solver = Solver(args, weights_only=True)
-    if args.score:
+    if args.force:
         predict = solver.predict(test_loader, return_score=True)
         predict = np.array(predict)
         predict[:, 1] = geo_mean(predict[:, 1:3], axis=1)
@@ -115,8 +107,7 @@ def main():
         predict = np.array(predict)
         if args.texture:
             predict = np.reshape(predict, (-1, 10))
-            # predict = np.mean(predict, axis=1)
-            predict = geo_mean(predict, axis=1)
+            predict = np.mean(predict, axis=1)
 
     with open(args.output_csv, 'w') as f:
         f.write('video_id,label\n')
@@ -137,4 +128,3 @@ def test():
 
 if __name__ == '__main__':
     main()
-    # test()

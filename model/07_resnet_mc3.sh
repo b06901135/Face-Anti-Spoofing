@@ -32,3 +32,13 @@ python3 predict.py \
     --model $MODEL \
     --output_csv output/"${NAME}_cat.csv" \
     --test_dir siw_test
+
+python3 predict.py \
+    --image_dim 224 \
+    --texture \
+    --category \
+    --force \
+    --load_checkpoint ckpt/$NAME/e50.pth \
+    --model $MODEL \
+    --output_csv output/"${NAME}_force_cat.csv" \
+    --test_dir siw_test

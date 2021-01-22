@@ -8,7 +8,6 @@ siw_test/
 
 ckpt/
 log/
-output/
 qsub/
 *_old/
 
