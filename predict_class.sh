@@ -7,7 +7,7 @@ python3 predict.py \
     --image_dim 224 \
     --texture \
     --category \
-    --load_checkpoint ckpt_final/${NAME}.pth \
+    --load_checkpoint ckpt_final/${NAME}_e50.pth \
     --model ${MODEL} \
     --test_dir $1 \
     --output_csv $2
